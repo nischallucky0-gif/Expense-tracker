@@ -435,14 +435,19 @@ const App = {
     },
 
     formatDate(dateStr) {
-        if (!dateStr) return '';
-        const [year, month, day] = dateStr.split('-');
-        const date = new Date(year, month - 1, day);
-        return date.toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric'
-        });
+        if (!dateStr || typeof dateStr !== 'string' || !dateStr.includes('-')) return '';
+        try {
+            const [year, month, day] = dateStr.split('-');
+            const date = new Date(parseInt(year, 10), parseInt(month, 10) - 1, parseInt(day, 10));
+            if (isNaN(date.getTime())) return String(dateStr);
+            return date.toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric'
+            });
+        } catch (e) {
+            return String(dateStr);
+        }
     },
 
     escapeHtml(str) {
