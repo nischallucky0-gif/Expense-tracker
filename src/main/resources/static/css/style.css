@@ -271,6 +271,25 @@ a {
     border-radius: var(--radius-sm);
     font-size: 11.5px;
     color: #34d399;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.server-status-pill:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.server-status-pill.status-online {
+    background: rgba(16, 185, 129, 0.1);
+    border-color: rgba(16, 185, 129, 0.25);
+    color: #34d399;
+}
+
+.server-status-pill.status-demo {
+    background: rgba(99, 102, 241, 0.15);
+    border-color: rgba(99, 102, 241, 0.35);
+    color: #a5b4fc;
 }
 
 .status-dot {
@@ -279,6 +298,11 @@ a {
     border-radius: 50%;
     background-color: #10b981;
     box-shadow: 0 0 6px #10b981;
+}
+
+.server-status-pill.status-demo .status-dot {
+    background-color: #818cf8;
+    box-shadow: 0 0 6px #818cf8;
 }
 
 .tech-badge {

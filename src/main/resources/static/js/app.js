@@ -8,14 +8,23 @@ const App = {
         selectedYear: new Date().getFullYear(),
         selectedMonth: new Date().getMonth() + 1,
         expenseCount: 0,
-        incomeCount: 0
+        incomeCount: 0,
+        backendConnected: false,
+        customApiBase: localStorage.getItem('spendflow_backend_url') || ''
     },
 
-    init() {
+    async init() {
+        if (window.MockStore) {
+            window.MockStore.init();
+        }
+
         this.setupNavigation();
         this.setupDateSelectors();
         this.setupModals();
-        this.checkBackendHealth();
+        this.setupBackendSettings();
+
+        // Check backend health before rendering view
+        await this.checkBackendHealth();
 
         // Listen for quick action buttons
         const quickAddExpense = document.getElementById('quickAddExpenseBtn');
@@ -174,44 +183,145 @@ const App = {
     // ===================================================================
     // API & Network Helper
     // ===================================================================
+    getApiUrl(path) {
+        if (this.state.customApiBase && this.state.customApiBase.trim()) {
+            const base = this.state.customApiBase.trim().replace(/\/+$/, '');
+            return `${base}${path}`;
+        }
+        return path;
+    },
+
     async apiFetch(url, options = {}) {
-        try {
-            const defaultHeaders = {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            };
-            const config = {
-                ...options,
-                headers: {
-                    ...defaultHeaders,
-                    ...(options.headers || {})
+        if (this.state.backendConnected) {
+            try {
+                const fullUrl = this.getApiUrl(url);
+                const defaultHeaders = {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                };
+                const config = {
+                    ...options,
+                    headers: {
+                        ...defaultHeaders,
+                        ...(options.headers || {})
+                    }
+                };
+
+                const response = await fetch(fullUrl, config);
+                const json = await response.json().catch(() => ({}));
+
+                if (!response.ok) {
+                    const message = json.message || json.error || `Request failed with status ${response.status}`;
+                    throw new Error(message);
                 }
-            };
 
-            const response = await fetch(url, config);
-            const json = await response.json().catch(() => ({}));
-
-            if (!response.ok) {
-                const message = json.message || json.error || `Request failed with status ${response.status}`;
-                throw new Error(message);
+                return json;
+            } catch (error) {
+                console.warn('Backend request failed, falling back to MockStore:', error);
+                if (window.MockStore) {
+                    return await window.MockStore.handleRequest(url, options);
+                }
+                throw error;
             }
-
-            return json;
-        } catch (error) {
-            console.error('API Request Error:', error);
-            throw error;
+        } else {
+            // Cloud Demo / Local Storage Mode (active on Vercel or offline)
+            if (window.MockStore) {
+                return await window.MockStore.handleRequest(url, options);
+            }
+            throw new Error('Backend offline and MockStore unavailable');
         }
     },
 
     async checkBackendHealth() {
+        const statusText = document.getElementById('backendStatusText');
+        const statusPill = document.getElementById('backendStatusPill');
+        const techText = document.getElementById('backendTechText');
+
         try {
-            await fetch('/api/expenses/categories');
-            const statusText = document.getElementById('backendStatusText');
-            if (statusText) statusText.textContent = 'Backend: Online';
+            const testUrl = this.getApiUrl('/api/expenses/categories');
+            const res = await fetch(testUrl, {
+                method: 'GET',
+                headers: { 'Accept': 'application/json' }
+            });
+            if (res.ok) {
+                const json = await res.json().catch(() => null);
+                if (json && json.success) {
+                    this.state.backendConnected = true;
+                    if (statusText) statusText.textContent = 'Backend: Online';
+                    if (statusPill) {
+                        statusPill.classList.remove('status-demo');
+                        statusPill.classList.add('status-online');
+                    }
+                    if (techText) techText.innerHTML = 'Spring Boot &bull; MySQL';
+                    return true;
+                }
+            }
+            throw new Error('Backend not available');
         } catch (e) {
-            const statusText = document.getElementById('backendStatusText');
-            if (statusText) statusText.textContent = 'Backend: Offline';
+            this.state.backendConnected = false;
+            if (statusText) statusText.textContent = 'Cloud Demo Mode';
+            if (statusPill) {
+                statusPill.classList.remove('status-online');
+                statusPill.classList.add('status-demo');
+            }
+            if (techText) techText.innerHTML = 'Interactive Local Storage';
+            return false;
         }
+    },
+
+    setupBackendSettings() {
+        const statusPill = document.getElementById('backendStatusPill');
+        if (statusPill) {
+            statusPill.addEventListener('click', () => this.openBackendSettingsModal());
+        }
+
+        const form = document.getElementById('backendSettingsForm');
+        if (form) {
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const input = document.getElementById('backendUrlInput');
+                const val = input ? input.value.trim() : '';
+                this.state.customApiBase = val;
+                if (val) {
+                    localStorage.setItem('spendflow_backend_url', val);
+                } else {
+                    localStorage.removeItem('spendflow_backend_url');
+                }
+                this.closeModal('backendSettingsModal');
+                this.showToast('Rechecking backend connection...', 'info');
+                await this.checkBackendHealth();
+                this.loadCurrentView();
+            });
+        }
+
+        const resetDataBtn = document.getElementById('resetSampleDataBtn');
+        if (resetDataBtn) {
+            resetDataBtn.addEventListener('click', () => {
+                if (window.MockStore) {
+                    window.MockStore.resetAllData();
+                    this.closeModal('backendSettingsModal');
+                    this.showToast('Sample data reset successfully!', 'success');
+                    this.loadCurrentView();
+                }
+            });
+        }
+    },
+
+    openBackendSettingsModal() {
+        const input = document.getElementById('backendUrlInput');
+        if (input) input.value = this.state.customApiBase || '';
+
+        const modeBadge = document.getElementById('currentModeBadge');
+        if (modeBadge) {
+            if (this.state.backendConnected) {
+                modeBadge.textContent = 'Spring Boot Live API (Connected)';
+                modeBadge.className = 'badge badge-success';
+            } else {
+                modeBadge.textContent = 'Interactive Cloud Demo (LocalStorage)';
+                modeBadge.className = 'badge badge-warning';
+            }
+        }
+        this.openModal('backendSettingsModal');
     },
 
     // ===================================================================

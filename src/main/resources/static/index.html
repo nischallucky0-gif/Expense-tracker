@@ -66,12 +66,12 @@
             </nav>
 
             <div class="sidebar-footer">
-                <div class="server-status-pill">
-                    <span class="status-dot"></span>
-                    <span class="status-label" id="backendStatusText">Backend: Online</span>
+                <div class="server-status-pill" id="backendStatusPill" title="Click to view connection settings" style="cursor: pointer;">
+                    <span class="status-dot" id="backendStatusDot"></span>
+                    <span class="status-label" id="backendStatusText">Detecting Backend...</span>
                 </div>
                 <div class="tech-badge">
-                    <span>Spring Boot &bull; MySQL</span>
+                    <span id="backendTechText">Spring Boot &bull; MySQL</span>
                 </div>
             </div>
         </aside>
@@ -837,10 +837,60 @@
         </div>
     </div>
 
+    <!-- Backend Connection Settings Modal -->
+    <div class="modal-overlay" id="backendSettingsModal" role="dialog" aria-modal="true" aria-labelledby="backendSettingsModalTitle">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 class="modal-title" id="backendSettingsModalTitle">
+                    <i class="fa-solid fa-server text-indigo"></i> Connection Settings
+                </h3>
+                <button type="button" class="modal-close-btn" onclick="App.closeModal('backendSettingsModal')" aria-label="Close modal">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <form id="backendSettingsForm">
+                <div class="modal-body">
+                    <div style="background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 8px; padding: 12px 16px; margin-bottom: 16px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                            <span style="font-size: 0.82rem; font-weight: 600; color: var(--text-secondary);">CURRENT MODE</span>
+                            <span id="currentModeBadge" class="badge badge-success">Detecting...</span>
+                        </div>
+                        <p style="font-size: 0.8rem; color: var(--text-secondary); margin: 0; line-height: 1.4;">
+                            When running on <strong>Vercel</strong> or offline, SpendFlow seamlessly operates with high-speed in-browser LocalStorage. When running Spring Boot locally or on a cloud host, it connects directly via REST APIs.
+                        </p>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="backendUrlInput" class="form-label">Custom Spring Boot API URL (Optional)</label>
+                        <input type="url" id="backendUrlInput" class="form-control" placeholder="e.g. https://my-backend.up.railway.app or http://localhost:8080">
+                        <small style="display: block; margin-top: 4px; font-size: 0.75rem; color: var(--text-muted);">
+                            Leave blank for default same-origin <code>/api</code> endpoints.
+                        </small>
+                    </div>
+
+                    <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <div style="font-weight: 600; font-size: 0.85rem;">Local Demo Data</div>
+                            <small style="color: var(--text-muted); font-size: 0.75rem;">Reset sample Rupee expenses, incomes & budgets</small>
+                        </div>
+                        <button type="button" class="btn btn-outline btn-sm" id="resetSampleDataBtn">
+                            <i class="fa-solid fa-rotate-left"></i> Reset Demo Data
+                        </button>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="App.closeModal('backendSettingsModal')">Close</button>
+                    <button type="submit" class="btn btn-primary">Save & Connect</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Toast Notification Container -->
     <div class="toast-container" id="toastContainer" aria-live="polite"></div>
 
     <!-- Application Scripts -->
+    <script src="js/mock-store.js"></script>
     <script src="js/app.js"></script>
     <script src="js/dashboard.js"></script>
     <script src="js/expenses.js"></script>

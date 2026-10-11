@@ -1,0 +1,9 @@
+{
+  "name": "spendflow-expense-tracker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "SpendFlow - Full Stack Personal Expense Tracker Web Application",
+  "scripts": {
+    "build": "echo 'Static build ready'"
+  }
+}
